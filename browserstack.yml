@@ -1,23 +1,36 @@
+# BrowserStack configuration for parallel execution
 userName: ${BROWSERSTACK_USERNAME}
 accessKey: ${BROWSERSTACK_ACCESS_KEY}
-buildName: "BStack Demo Test Suite"
-projectName: "Selenium Python Demo"
 
+# Framework configuration
+framework: pytest
+
+# Browser configurations for parallel execution
 platforms:
-  - os: "Windows"
-    osVersion: "10"
-    browserName: "Chrome"
-    browserVersion: "latest"
-  - os: "OS X"
-    osVersion: "Ventura"
-    browserName: "Firefox"
-    browserVersion: "latest"
-  - deviceName: "Samsung Galaxy S22"
-    osVersion: "12.0"
-    browserName: "chrome"
+  - os: Windows
+    osVersion: 10
+    browserName: Chrome
+    browserVersion: latest
+  
+  - os: OS X
+    osVersion: Ventura
+    browserName: Firefox
+    browserVersion: latest
+  
+  - deviceName: Samsung Galaxy S22
+    browserName: chrome
+    platformName: android
+    osVersion: 12.0
 
-parallels: 3
-debug: false
-networkLogs: false
-consoleLogs: errors
-maskCommands: "setValues, getValues, setCookies, getCookies"
+# Parallel execution settings
+parallelsPerPlatform: 1
+
+# Build information
+buildName: BStack Demo Test Suite
+projectName: BrowserStack Demo Tests
+
+# Additional capabilities
+browserstackLocal: false
+debug: true
+networkLogs: true
+video: true
