@@ -1,6 +1,15 @@
 pipeline {
     agent any
     
+    environment {
+        // TEMPORARY: Replace these with your actual credentials
+        // This is NOT recommended for production - use Jenkins credentials instead
+        BROWSERSTACK_USERNAME = 'michaelzada_kKTcgR'
+        BROWSERSTACK_ACCESS_KEY = 'voDkvRqyaPzkku9ncwt8'
+        DEMO_USERNAME = 'demouser'
+        DEMO_PASSWORD = 'testingisfun99'
+    }
+    
     stages {
         stage('Setup') {
             steps {
@@ -16,20 +25,13 @@ pipeline {
         
         stage('Run BrowserStack Tests') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'browserstack-username', variable: 'BROWSERSTACK_USERNAME'),
-                    string(credentialsId: 'browserstack-access-key', variable: 'BROWSERSTACK_ACCESS_KEY')
-                ]) {
-                    sh '''
-                        . venv/bin/activate
-                        export DEMO_USERNAME='demouser'
-                        export DEMO_PASSWORD='testingisfun99'
-                        
-                        # Run tests in parallel across 3 browsers using browserstack-sdk
-                        # The -n 3 flag runs 3 tests in parallel
-                        browserstack-sdk pytest tests/test_bstack_demo.py -v -n 3 --tb=short
-                    '''
-                }
+                sh '''
+                    . venv/bin/activate
+                    
+                    # Run tests in parallel across 3 browsers using browserstack-sdk
+                    # The -n 3 flag runs 3 tests in parallel
+                    browserstack-sdk pytest tests/test_bstack_demo.py -v -n 3 --tb=short
+                '''
             }
         }
         
