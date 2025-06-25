@@ -49,6 +49,20 @@ class Config:
     BROWSERSTACK_USERNAME = os.environ.get('BROWSERSTACK_USERNAME')
     BROWSERSTACK_ACCESS_KEY = os.environ.get('BROWSERSTACK_ACCESS_KEY')
     
+    # BrowserStack Hub URL
+    @property
+    @staticmethod
+    def BROWSERSTACK_HUB():
+        username = Config.BROWSERSTACK_USERNAME
+        access_key = Config.BROWSERSTACK_ACCESS_KEY
+        if username and access_key:
+            return f"https://{username}:{access_key}@hub-cloud.browserstack.com/wd/hub"
+        else:
+            raise ValueError("BrowserStack credentials not found")
+    
+    # Alternative static hub URL (if the property doesn't work)
+    BROWSERSTACK_HUB = f"https://{os.environ.get('BROWSERSTACK_USERNAME')}:{os.environ.get('BROWSERSTACK_ACCESS_KEY')}@hub-cloud.browserstack.com/wd/hub"
+    
     # Demo site credentials
     DEMO_USERNAME = os.environ.get('DEMO_USERNAME', 'demouser')
     DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', 'testingisfun99')
@@ -64,7 +78,8 @@ class Config:
                 'osVersion': '10',
                 'browserName': 'Chrome',
                 'browserVersion': 'latest',
-                'sessionName': 'Windows Chrome Test'
+                'sessionName': 'Windows Chrome Test',
+                'buildName': f"BStack Demo Suite - Build {os.getenv('BUILD_NUMBER', 'Local Build')}"
             }
         },
         {
@@ -73,7 +88,8 @@ class Config:
                 'osVersion': 'Ventura',
                 'browserName': 'Firefox',
                 'browserVersion': 'latest',
-                'sessionName': 'macOS Firefox Test'
+                'sessionName': 'macOS Firefox Test',
+                'buildName': f"BStack Demo Suite - Build {os.getenv('BUILD_NUMBER', 'Local Build')}"
             }
         },
         {
@@ -82,7 +98,8 @@ class Config:
                 'platformName': 'android',
                 'osVersion': '12.0',
                 'browserName': 'chrome',
-                'sessionName': 'Samsung Galaxy S22 Test'
+                'sessionName': 'Samsung Galaxy S22 Test',
+                'buildName': f"BStack Demo Suite - Build {os.getenv('BUILD_NUMBER', 'Local Build')}"
             }
         }
     ]
