@@ -31,13 +31,16 @@ pipeline {
                 }
             }
         }
+        
+        stage('Cleanup') {
+            steps {
+                echo 'Cleaning up...'
+                sh 'rm -rf venv || true'
+            }
+        }
     }
     
     post {
-        always {
-            echo 'Cleaning up...'
-            sh 'rm -rf venv'
-        }
         success {
             echo 'Tests completed successfully!'
         }
