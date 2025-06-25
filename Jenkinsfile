@@ -10,29 +10,29 @@ pipeline {
     }
     
     stages {
-        stage('Debug Project Structure') {
+        stage('Debug Config Files') {
             steps {
                 sh '''
-                    echo "=== Project Structure ==="
-                    pwd
-                    ls -la
+                    echo "=== Contents of config directory ==="
+                    ls -la config/
                     
-                    echo "\n=== Contents of tests directory ==="
-                    ls -la tests/
+                    echo "\n=== Contents of config/config.py ==="
+                    cat config/config.py || echo "File not found"
                     
-                    echo "\n=== First few lines of test file ==="
-                    head -20 tests/test_bstack_demo.py || echo "Test file not found"
+                    echo "\n=== Contents of utils directory ==="
+                    ls -la utils/
                     
-                    echo "\n=== Check for pages directory ==="
-                    if [ -d "pages" ]; then
-                        echo "Pages directory exists"
-                        ls -la pages/
+                    echo "\n=== Contents of utils/driver_factory.py (first 20 lines) ==="
+                    head -20 utils/driver_factory.py || echo "File not found"
+                    
+                    echo "\n=== Check config/__init__.py ==="
+                    if [ -f "config/__init__.py" ]; then
+                        echo "config/__init__.py exists"
+                        cat config/__init__.py
                     else
-                        echo "Pages directory NOT found - this is the issue!"
+                        echo "config/__init__.py NOT found - creating it"
+                        touch config/__init__.py
                     fi
-                    
-                    echo "\n=== Check for __init__.py files ==="
-                    find . -name "__init__.py" -type f 2>/dev/null || echo "No __init__.py files found"
                 '''
             }
         }
@@ -50,16 +50,49 @@ pipeline {
             }
         }
         
-        stage('Fix Python Path and Run Tests') {
+        stage('Test Python Import') {
             steps {
                 sh '''
                     . venv/bin/activate
+                    export PYTHONPATH="${PWD}:${PYTHONPATH}"
                     
-                    # Add current directory to PYTHONPATH
-                    export PYTHONPATH="${PYTHONPATH}:${PWD}"
-                    echo "PYTHONPATH is: $PYTHONPATH"
+                    echo "=== Testing imports directly ==="
+                    python -c "
+try:
+    import config
+    print('✓ config module imported')
+except Exception as e:
+    print(f'✗ Failed to import config: {e}')
+    
+try:
+    from config import config
+    print('✓ config.config imported')
+except Exception as e:
+    print(f'✗ Failed to import config.config: {e}')
+    
+try:
+    from config.config import Config
+    print('✓ Config class imported')
+except Exception as e:
+    print(f'✗ Failed to import Config class: {e}')
+    
+try:
+    import utils
+    print('✓ utils module imported')
+except Exception as e:
+    print(f'✗ Failed to import utils: {e}')
+"
+                '''
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    export PYTHONPATH="${PWD}:${PYTHONPATH}"
                     
-                    # Try to run tests
+                    # Try running tests
                     browserstack-sdk pytest tests/test_bstack_demo.py -v -n 3 --tb=short || true
                 '''
             }
@@ -75,13 +108,7 @@ pipeline {
     
     post {
         always {
-            echo 'Test execution completed.'
-        }
-        success {
-            echo 'Pipeline completed!'
-        }
-        failure {
-            echo 'Pipeline failed. Check the logs above.'
+            echo 'Debug pipeline completed.'
         }
     }
 }
