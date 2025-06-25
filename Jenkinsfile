@@ -50,17 +50,6 @@ class Config:
     BROWSERSTACK_ACCESS_KEY = os.environ.get('BROWSERSTACK_ACCESS_KEY')
     
     # BrowserStack Hub URL
-    @property
-    @staticmethod
-    def BROWSERSTACK_HUB():
-        username = Config.BROWSERSTACK_USERNAME
-        access_key = Config.BROWSERSTACK_ACCESS_KEY
-        if username and access_key:
-            return f"https://{username}:{access_key}@hub-cloud.browserstack.com/wd/hub"
-        else:
-            raise ValueError("BrowserStack credentials not found")
-    
-    # Alternative static hub URL (if the property doesn't work)
     BROWSERSTACK_HUB = f"https://{os.environ.get('BROWSERSTACK_USERNAME')}:{os.environ.get('BROWSERSTACK_ACCESS_KEY')}@hub-cloud.browserstack.com/wd/hub"
     
     # Demo site credentials
@@ -73,36 +62,81 @@ class Config:
     # Browser configurations for parallel execution
     BROWSER_CONFIGS = [
         {
+            'browserName': 'chrome',
             'bstack:options': {
                 'os': 'Windows',
                 'osVersion': '10',
-                'browserName': 'Chrome',
-                'browserVersion': 'latest',
                 'sessionName': 'Windows Chrome Test',
                 'buildName': f"BStack Demo Suite - Build {os.getenv('BUILD_NUMBER', 'Local Build')}"
             }
         },
         {
+            'browserName': 'firefox',
             'bstack:options': {
                 'os': 'OS X',
                 'osVersion': 'Ventura',
-                'browserName': 'Firefox',
-                'browserVersion': 'latest',
                 'sessionName': 'macOS Firefox Test',
                 'buildName': f"BStack Demo Suite - Build {os.getenv('BUILD_NUMBER', 'Local Build')}"
             }
         },
         {
+            'browserName': 'chrome',
             'bstack:options': {
                 'deviceName': 'Samsung Galaxy S22',
                 'platformName': 'android',
                 'osVersion': '12.0',
-                'browserName': 'chrome',
                 'sessionName': 'Samsung Galaxy S22 Test',
                 'buildName': f"BStack Demo Suite - Build {os.getenv('BUILD_NUMBER', 'Local Build')}"
             }
         }
     ]
+EOF
+                    
+                    # Also update the driver_factory.py to use modern Selenium 4 syntax
+                    if [ -f utils/driver_factory.py ]; then
+                        mv utils/driver_factory.py utils/driver_factory.py.bak
+                    fi
+                    
+                    cat > utils/driver_factory.py << 'EOF'
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from config.config import Config
+
+class DriverFactory:
+    @staticmethod
+    def create_driver(browser_config):
+        """Create a WebDriver instance for BrowserStack using Selenium 4 syntax"""
+        if not Config.BROWSERSTACK_USERNAME or not Config.BROWSERSTACK_ACCESS_KEY:
+            raise ValueError("BrowserStack credentials not found. Please set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY environment variables.")
+        
+        # Get browser name
+        browser_name = browser_config.get('browserName', 'chrome').lower()
+        
+        # Create options based on browser type
+        if browser_name == 'chrome':
+            options = ChromeOptions()
+        elif browser_name == 'firefox':
+            options = FirefoxOptions()
+        else:
+            options = ChromeOptions()  # Default to Chrome
+        
+        # Set BrowserStack options
+        options.set_capability('bstack:options', browser_config.get('bstack:options', {}))
+        
+        # Add build name from Jenkins if available
+        import os
+        build_name = os.getenv('BUILD_NUMBER', 'Local Build')
+        if 'bstack:options' in browser_config:
+            browser_config['bstack:options']['buildName'] = f"BStack Demo Suite - Build {build_name}"
+        
+        # Create WebDriver with Selenium 4 syntax
+        driver = webdriver.Remote(
+            command_executor=Config.BROWSERSTACK_HUB,
+            options=options
+        )
+        
+        return driver
 EOF
                 '''
             }
@@ -124,9 +158,13 @@ EOF
             steps {
                 echo 'Cleaning up...'
                 sh '''
-                    # Restore original config.py if backed up
+                    # Restore original files if backed up
                     if [ -f config/config.py.bak ]; then
                         mv config/config.py.bak config/config.py
+                    fi
+                    
+                    if [ -f utils/driver_factory.py.bak ]; then
+                        mv utils/driver_factory.py.bak utils/driver_factory.py
                     fi
                     
                     rm -rf venv || true
